@@ -55,3 +55,7 @@ backend/*.pyc
 
 
 *.npz
+
+# Dataset
+chunks.json
+backend/chunks.json

@@ -33,7 +33,7 @@ try:
 except ImportError:
     pass
 
-from test_backend_integration import RAGGenerator, GenerationConfig, SYSTEM_PROMPT
+from rag_generate import RAGGenerator, GenerationConfig, SYSTEM_PROMPT
 
 
 # Global instances
@@ -50,23 +50,21 @@ async def lifespan(app: FastAPI):
     global rag_generator
     
     print("\n" + "="*60)
-    print("🚀 Initializing RAG pipeline...")
+    print("Initializing RAG pipeline...")
     print("="*60)
     
     config = GenerationConfig(
-        llm_provider="openai",
         retrieval_top_k=8,
         refine_query=True,
-        use_reranker=True
     )
     
     rag_generator = RAGGenerator(config)
-    print("\n✅ RAG pipeline ready!")
+    print("\nRAG pipeline ready!")
     print("="*60 + "\n")
     
     yield
     
-    print("\n👋 Shutting down...")
+    print("\nShutting down...")
 
 
 app = FastAPI(
@@ -206,7 +204,7 @@ async def stream_rag_response(
         
         results = await loop.run_in_executor(
             None,
-            lambda: rag_generator.retrieval.retrieve(refined, top_k=top_k)
+            lambda: rag_generator.retrieval.retrieve(refined, top_k=top_k, use_reranker=use_reranker)
         )
         
         if not results:
@@ -251,7 +249,7 @@ IMPORTANT: You have been provided with {len(results)} paper excerpts. Make sure 
         }
         
         payload = {
-            "model": f"openai/{rag_generator.config.llm_model}",
+            "model": rag_generator.config.llm_model,
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_message}
@@ -390,10 +388,10 @@ async def websocket_query(websocket: WebSocket):
         results = await loop.run_in_executor(
             None,
             lambda: rag_generator.retrieval.retrieve(
-                refined, 
+                refined,
                 top_k=top_k,
                 use_hybrid=True,
-                use_reranker=use_reranker
+                use_reranker=use_reranker,
             )
         )
         
@@ -445,7 +443,7 @@ IMPORTANT: You have been provided with {len(results)} paper excerpts. Make sure 
         }
         
         payload = {
-            "model": f"openai/{rag_generator.config.llm_model}",
+            "model": rag_generator.config.llm_model,
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_message}
@@ -514,23 +512,17 @@ if __name__ == "__main__":
     # Get port from environment variable (for deployment) or use 8082 for local dev
     port = int(os.getenv("PORT", 8082))
     
-    print(f"""
-╔════════════════════════════════════════════════════════════════╗
-║           SIGGRAPH 2025 RAG API Server                        ║
-╠════════════════════════════════════════════════════════════════╣
-║                                                                ║
-║  Starting server on http://0.0.0.0:{port}                     ║
-║                                                                ║
-║  Endpoints:                                                    ║
-║    • GET  /              - Frontend UI                         ║
-║    • GET  /docs          - API Documentation                   ║
-║    • POST /api/query     - Query endpoint                      ║
-║    • WS  /ws/query       - WebSocket streaming                 ║
-║                                                                ║
-║  Frontend files: ./frontend/                                   ║
-║                                                                ║
-╚════════════════════════════════════════════════════════════════╝
-""")
+    print("\n" + "=" * 60)
+    print("SIGGRAPH 2025 RAG API Server")
+    print("=" * 60)
+    print(f"Starting server on http://0.0.0.0:{port}")
+    print("Endpoints:")
+    print("  - GET  /          - Frontend UI")
+    print("  - GET  /docs      - API Documentation")
+    print("  - POST /api/query - Query endpoint")
+    print("  - WS  /ws/query   - WebSocket streaming")
+    print("Frontend files: ./frontend/")
+    print("=" * 60 + "\n")
     
     uvicorn.run(
         "api_server:app",

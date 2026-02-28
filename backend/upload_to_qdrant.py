@@ -55,7 +55,7 @@ def get_embeddings_batch(texts: list[str], api_key: str) -> list[list[float]]:
             
             if "error" in data:
                 wait = RETRY_DELAY * (2 ** attempt)
-                print(f"\n⚠️  API error: {data['error'].get('message', 'Unknown')}. Retry in {wait}s...")
+                print(f"\n[WARN] API error: {data['error'].get('message', 'Unknown')}. Retry in {wait}s...")
                 time.sleep(wait)
                 continue
             
@@ -66,7 +66,7 @@ def get_embeddings_batch(texts: list[str], api_key: str) -> list[list[float]]:
             
         except requests.exceptions.RequestException as e:
             wait = RETRY_DELAY * (2 ** attempt)
-            print(f"\n⚠️  Request error: {e}. Retry in {wait}s...")
+            print(f"\n[WARN] Request error: {e}. Retry in {wait}s...")
             time.sleep(wait)
     
     raise Exception(f"Failed after {MAX_RETRIES} retries")
@@ -87,7 +87,7 @@ def create_collection(client: QdrantClient, name: str, size: int, recreate: bool
         collection_name=name,
         vectors_config=models.VectorParams(size=size, distance=models.Distance.COSINE)
     )
-    print(f"✓ Created collection '{name}' (dim={size})")
+    print(f"Created collection '{name}' (dim={size})")
 
 
 def upload_chunks(client: QdrantClient, name: str, chunks: list, api_key: str, batch_size: int):
@@ -120,7 +120,7 @@ def upload_chunks(client: QdrantClient, name: str, chunks: list, api_key: str, b
         client.upsert(collection_name=name, points=points)
         uploaded += len(batch)
     
-    print(f"\n✓ Uploaded {uploaded} chunks")
+    print(f"\nUploaded {uploaded} chunks")
 
 
 def main():
@@ -139,7 +139,7 @@ def main():
     print(f"Model: {EMBEDDING_MODEL} | Batch: {BATCH_SIZE} | Dim: {VECTOR_SIZE}")
     
     client = QdrantClient(url=qdrant_url, api_key=qdrant_key, timeout=120)
-    print("✓ Connected to Qdrant")
+    print("Connected to Qdrant")
     
     chunks = load_chunks(CHUNKS_PATH)
     print(f"Loaded {len(chunks)} chunks")
@@ -147,7 +147,7 @@ def main():
     create_collection(client, COLLECTION_NAME, VECTOR_SIZE, args.recreate)
     upload_chunks(client, COLLECTION_NAME, chunks, api_key, BATCH_SIZE)
     
-    print(f"\n✅ Done! Collection: {COLLECTION_NAME}")
+    print(f"\nDone! Collection: {COLLECTION_NAME}")
 
 
 if __name__ == "__main__":
