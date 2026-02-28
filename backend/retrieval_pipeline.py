@@ -86,7 +86,7 @@ class OpenRouterEmbedder:
             api_key: OpenRouter API key
             model: Embedding model to use
         """
-        self.api_key = api_key
+        self.api_key = (api_key or "").strip().strip('"').strip("'")
         self.model = model
         self.base_url = "https://openrouter.ai/api/v1"
     
@@ -280,7 +280,7 @@ class RetrievalPipeline:
             raise ValueError("QDRANT_URL not set")
         if not config.qdrant_api_key:
             raise ValueError("QDRANT_API_KEY not set")
-        if not config.openrouter_api_key:
+        if not (config.openrouter_api_key or "").strip().strip('"').strip("'"):
             raise ValueError("OPENROUTER_API_KEY not set")
 
         self.qdrant = QdrantClient(url=config.qdrant_url, api_key=config.qdrant_api_key)
