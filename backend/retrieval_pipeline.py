@@ -301,21 +301,27 @@ class RetrievalPipeline:
         if not chunks_path.is_absolute():
             chunks_path = (Path(__file__).resolve().parent / chunks_path).resolve()
 
-        with open(chunks_path, "r", encoding="utf-8") as f:
-            chunks_payload = json.load(f)
+        self.chunks: list[dict] = []
+        self.bm25_index: Optional[BM25Index] = None
 
-        if isinstance(chunks_payload, dict) and "chunks" in chunks_payload:
-            chunks_payload = chunks_payload["chunks"]
+        try:
+            with open(chunks_path, "r", encoding="utf-8") as f:
+                chunks_payload = json.load(f)
 
-        if not isinstance(chunks_payload, list):
-            raise ValueError(
-                "Invalid chunks file format: expected a list of chunks or an object with a 'chunks' list"
-            )
+            if isinstance(chunks_payload, dict) and "chunks" in chunks_payload:
+                chunks_payload = chunks_payload["chunks"]
 
-        self.chunks: list[dict] = chunks_payload
+            if not isinstance(chunks_payload, list):
+                raise ValueError(
+                    "Invalid chunks file format: expected a list of chunks or an object with a 'chunks' list"
+                )
 
-        self.bm25_index = BM25Index(self.chunks)
-        print("BM25 index built")
+            self.chunks = chunks_payload
+            self.bm25_index = BM25Index(self.chunks)
+            print("BM25 index built")
+        except (FileNotFoundError, OSError, json.JSONDecodeError, ValueError):
+            self.chunks = []
+            self.bm25_index = None
 
         self.config = config
     
@@ -394,6 +400,8 @@ class RetrievalPipeline:
         Returns:
             List of result dicts with chunk_id, score, and payload
         """
+        if not self.bm25_index or not self.chunks:
+            return []
         results = self.bm25_index.search(query, top_k)
         return [
             {
